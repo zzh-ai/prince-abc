@@ -1,0 +1,45 @@
+#coding:gbk
+"""
+建立人物关系
+作者:邹志宏
+"""
+import jieba
+import jieba.posseg as pseg
+import codecs
+
+names={}#创建人物字典
+relationships={}#创建人物关系字典
+lineNames=[]#每段内人物关系
+jieba.load_userdict("人物.txt")#加载人物列表
+with open("黎明破晓的街道.txt", "r", encoding="gbk") as x:
+    for line in x.readlines():
+        poss=pseg.cut(line)  
+        lineNames.append([])  
+        for y in poss:
+            if len(y.word)<2 or y.flag!="nr":
+                continue#当分词长度小于2或是词性不是nr时就认为这个词不是人名
+            lineNames[-1].append(y.word)#在当前所在自然段添加一个人物
+            if names.get(y.word) is None: 
+                names[y.word]=0
+                relationships[y.word]={}
+            names[y.word]+=1#此人物出现次数加1
+for line in lineNames:
+    for name1 in line:
+        for name2 in line:
+            if name1==name2:
+                continue
+            if relationships[name1].get(name2) is None:
+                relationships[name1][name2]=1#如果两个人物没有同时出现则新建项
+            else:
+                relationships[name1][name2]=relationships[name1][name2]+1#两个人物同时出现则次数加1
+with codecs.open("People_node.csv", "w", "gbk") as x:
+    x.write("ID,Label,Weight\n")
+    for name, times in names.items():
+        if times>10:
+            x.write(name+"," + name+","+str(times)+"\n")
+with codecs.open("People_edge.csv", "w", "gbk") as x:
+    x.write("Source,Target,Weight\n")
+    for name, edges in relationships.items():
+        for v,w in edges.items():
+            if w>10:
+                x.write(name+","+v+","+str(w)+"\n")
